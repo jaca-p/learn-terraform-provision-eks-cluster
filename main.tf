@@ -32,8 +32,8 @@ module "vpc" {
   cidr = "192.168.0.0/16"
   azs  = slice(data.aws_availability_zones.available.names, 0, 3)
 
-  private_subnets = ["192.168.1.0/24"]
-  public_subnets  = ["192.168.2.0/24"]
+  private_subnets = ["192.168.1.0/24", "192.168.2.0/24"]
+  public_subnets  = ["192.168.3.0/24", "192.168.4.0/24"]
 
   enable_nat_gateway   = true
   single_nat_gateway   = true
@@ -58,11 +58,11 @@ module "eks" {
   cluster_endpoint_public_access           = true
   enable_cluster_creator_admin_permissions = true
 
-  cluster_addons = {
-    aws-ebs-csi-driver = {
-      service_account_role_arn = module.irsa-ebs-csi.iam_role_arn
-    }
-  }
+  #   cluster_addons = {
+  #     aws-ebs-csi-driver = {
+  #       service_account_role_arn = module.irsa-ebs-csi.iam_role_arn
+  #     }
+  #   }
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
@@ -83,31 +83,61 @@ module "eks" {
       desired_size = 3
     }
 
-#     two = {
-#       name = "node-group-2"
-#
-#       instance_types = ["t3.small"]
-#
-#       min_size     = 1
-#       max_size     = 2
-#       desired_size = 1
-#     }
+    #     two = {
+    #       name = "node-group-2"
+    #
+    #       instance_types = ["t3.small"]
+    #
+    #       min_size     = 1
+    #       max_size     = 2
+    #       desired_size = 1
+    #     }
   }
 }
 
 
 # https://aws.amazon.com/blogs/containers/amazon-ebs-csi-driver-is-now-generally-available-in-amazon-eks-add-ons/ 
-data "aws_iam_policy" "ebs_csi_policy" {
-  arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-}
+# data "aws_iam_policy" "ebs_csi_policy" {
+#   arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+# }
+#
+# module "irsa-ebs-csi" {
+#   source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
+#   version = "5.39.0"
+#
+#   create_role                   = true
+#   role_name                     = "AmazonEKSTFEBSCSIRole-${module.eks.cluster_name}"
+#   provider_url                  = module.eks.oidc_provider
+#   role_policy_arns              = [data.aws_iam_policy.ebs_csi_policy.arn]
+#   oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
+# }
 
-module "irsa-ebs-csi" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
-  version = "5.39.0"
+module "eks_blueprints_addons" {
+  source = "aws-ia/eks-blueprints-addons/aws"
+  version = "~> 1.0" #ensure to update this to the latest/desired version
 
-  create_role                   = true
-  role_name                     = "AmazonEKSTFEBSCSIRole-${module.eks.cluster_name}"
-  provider_url                  = module.eks.oidc_provider
-  role_policy_arns              = [data.aws_iam_policy.ebs_csi_policy.arn]
-  oidc_fully_qualified_subjects = ["system:serviceaccount:kube-system:ebs-csi-controller-sa"]
+  cluster_name      = module.eks.cluster_name
+  cluster_endpoint  = module.eks.cluster_endpoint
+  cluster_version   = module.eks.cluster_version
+  oidc_provider_arn = module.eks.oidc_provider_arn
+
+  eks_addons = {
+    aws-ebs-csi-driver = {
+      most_recent = true
+    }
+    coredns = {
+      most_recent = true
+    }
+    vpc-cni = {
+      most_recent = true
+    }
+    kube-proxy = {
+      most_recent = true
+    }
+  }
+
+  enable_aws_load_balancer_controller = true
+  enable_kube_prometheus_stack        = true
+  enable_metrics_server               = true
+  enable_external_dns                 = true
 }
