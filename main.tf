@@ -127,8 +127,6 @@ module "eks_blueprints_addons" {
     }
   }
 
-  enable_aws_load_balancer_controller = true
   enable_kube_prometheus_stack        = true
   enable_metrics_server               = true
-  enable_external_dns                 = true
 }
