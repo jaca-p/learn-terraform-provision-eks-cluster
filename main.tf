@@ -5,6 +5,18 @@ provider "aws" {
   region = var.region
 }
 
+provider "helm" {
+  kubernetes {
+    config_path = "~/.kube/config"
+  }
+}
+
+provider "kubectl" {
+  kubernetes {
+    config_path = "~/.kube/config"
+  }
+}
+
 # Filter out local zones, which are not currently supported 
 # with managed node groups
 data "aws_availability_zones" "available" {
