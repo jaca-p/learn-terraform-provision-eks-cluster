@@ -29,11 +29,11 @@ module "vpc" {
 
   name = "tf-11426-cluster-vpc"
 
-  cidr = "192.168.0.0/16"
+  cidr = "11.11.0.0/16"
   azs  = slice(data.aws_availability_zones.available.names, 0, 3)
 
-  private_subnets = ["192.168.1.0/24", "192.168.2.0/24"]
-  public_subnets  = ["192.168.3.0/24", "192.168.4.0/24"]
+  private_subnets = ["11.11.1.0/24", "11.11.2.0/24"]
+  public_subnets  = ["11.11.3f.0/24", "11.11.4.0/24"]
 
   enable_nat_gateway   = true
   single_nat_gateway   = true
